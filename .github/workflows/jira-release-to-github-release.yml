@@ -1,0 +1,179 @@
+name: Jira Release to GitHub Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: Jira version/release name, for example S0 or vTOC v0.1.0
+        required: true
+      jira_version_id:
+        description: Optional Jira version ID
+        required: false
+      release_scope:
+        description: dev for weekly interim cuts, public for the S4 v0.1.0 launch cut
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - public
+      tag_name:
+        description: Optional explicit tag name. Defaults to a sanitized version_name.
+        required: false
+      target_sha:
+        description: Optional commit SHA to tag. Defaults to the workflow ref SHA.
+        required: false
+      dry_run:
+        description: Print the release plan without creating/editing a tag or release
+        required: true
+        default: true
+        type: boolean
+  repository_dispatch:
+    types:
+      - jira-version-released
+
+permissions:
+  contents: write
+
+concurrency:
+  group: jira-release-${{ github.event.client_payload.version.name || github.event.inputs.version_name || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Prepare Jira release handoff
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      AUTO_ENABLED: ${{ vars.ENABLE_JIRA_RELEASE_AUTOMATION || 'false' }}
+    steps:
+      - name: Checkout target ref
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.client_payload.target_sha || github.event.inputs.target_sha || github.sha }}
+
+      - name: Normalize Jira release payload
+        id: release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const payload = context.payload.client_payload || {};
+            const inputs = context.payload.inputs || {};
+            const version = payload.version || {};
+            const versionName = inputs.version_name || version.name || payload.version_name;
+            if (!versionName) {
+              core.setFailed('Missing Jira version name. Provide workflow_dispatch.version_name or client_payload.version.name.');
+              return;
+            }
+
+            const explicitTag = inputs.tag_name || payload.tag_name;
+            const tagName = explicitTag || String(versionName)
+              .trim()
+              .replace(/^release[-_\s]*/i, '')
+              .replace(/[^A-Za-z0-9._-]+/g, '-')
+              .replace(/^-+|-+$/g, '')
+              .toLowerCase();
+
+            const releaseScope = inputs.release_scope || payload.release_scope || 'dev';
+            const targetSha = inputs.target_sha || payload.target_sha || context.sha;
+            const dryRun = context.eventName === 'workflow_dispatch'
+              ? String(inputs.dry_run ?? 'true') === 'true'
+              : String(payload.dry_run ?? 'false') === 'true';
+            const approved = context.eventName === 'workflow_dispatch'
+              ? !dryRun
+              : payload.kp_approved === true || payload.kp_approved === 'true';
+            const prerelease = releaseScope !== 'public';
+            const draft = releaseScope === 'public';
+
+            const jiraUrl = payload.jira_url || payload.issue_url || '';
+            const jiraProjectKey = payload.jira_project_key || payload.project_key || '';
+            const versionId = inputs.jira_version_id || version.id || payload.jira_version_id || '';
+            const releaseDate = version.releaseDate || payload.release_date || '';
+            const description = version.description || payload.description || '';
+
+            const lines = [
+              `Automated GitHub release handoff for Jira version \`${versionName}\`.`,
+              '',
+              `- Jira project: ${jiraProjectKey || 'not provided'}`,
+              `- Jira version ID: ${versionId || 'not provided'}`,
+              `- Jira release date: ${releaseDate || 'not provided'}`,
+              `- Release scope: ${releaseScope}`,
+              `- Target SHA: ${targetSha}`,
+              `- Source event: ${context.eventName}`,
+            ];
+            if (jiraUrl) lines.push(`- Jira URL: ${jiraUrl}`);
+            if (description) {
+              lines.push('', '## Jira release notes', '', description);
+            }
+            lines.push('', '## Operator notes', '', '- Weekly interim tags use `release_scope=dev` and are created as prereleases.', '- The S4 free-launch cut should use `release_scope=public` and an explicit semver tag such as `v0.1.0`.', '- Public-scope releases are created as GitHub draft releases first so KP can review notes before publishing.');
+            fs.writeFileSync('release-notes.md', `${lines.join('\n')}\n`);
+
+            core.setOutput('version_name', versionName);
+            core.setOutput('tag_name', tagName);
+            core.setOutput('release_scope', releaseScope);
+            core.setOutput('target_sha', targetSha);
+            core.setOutput('dry_run', String(dryRun));
+            core.setOutput('approved', String(approved));
+            core.setOutput('prerelease', String(prerelease));
+            core.setOutput('draft', String(draft));
+
+      - name: Summarize release plan
+        env:
+          VERSION_NAME: ${{ steps.release.outputs.version_name }}
+          TAG_NAME: ${{ steps.release.outputs.tag_name }}
+          RELEASE_SCOPE: ${{ steps.release.outputs.release_scope }}
+          TARGET_SHA: ${{ steps.release.outputs.target_sha }}
+          DRY_RUN: ${{ steps.release.outputs.dry_run }}
+          APPROVED: ${{ steps.release.outputs.approved }}
+          PRERELEASE: ${{ steps.release.outputs.prerelease }}
+          DRAFT: ${{ steps.release.outputs.draft }}
+        run: |
+          {
+            echo '## Jira → GitHub release plan'
+            echo
+            echo "- Version: ${VERSION_NAME}"
+            echo "- Tag: ${TAG_NAME}"
+            echo "- Scope: ${RELEASE_SCOPE}"
+            echo "- Target SHA: ${TARGET_SHA}"
+            echo "- Dry run: ${DRY_RUN}"
+            echo "- KP approved: ${APPROVED}"
+            echo "- Prerelease: ${PRERELEASE}"
+            echo "- Draft: ${DRAFT}"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Stop if automation is not approved
+        if: ${{ github.event_name == 'repository_dispatch' && (env.AUTO_ENABLED != 'true' || steps.release.outputs.approved != 'true') }}
+        run: |
+          echo 'Repository dispatch received, but release creation is gated.' | tee -a "$GITHUB_STEP_SUMMARY"
+          echo 'Set repository variable ENABLE_JIRA_RELEASE_AUTOMATION=true and send client_payload.kp_approved=true after KP approval.' | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Create or update GitHub release
+        if: ${{ steps.release.outputs.dry_run != 'true' && (github.event_name == 'workflow_dispatch' || (env.AUTO_ENABLED == 'true' && steps.release.outputs.approved == 'true')) }}
+        env:
+          TAG_NAME: ${{ steps.release.outputs.tag_name }}
+          VERSION_NAME: ${{ steps.release.outputs.version_name }}
+          TARGET_SHA: ${{ steps.release.outputs.target_sha }}
+          PRERELEASE: ${{ steps.release.outputs.prerelease }}
+          DRAFT: ${{ steps.release.outputs.draft }}
+        run: |
+          set -euo pipefail
+          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+            gh release edit "${TAG_NAME}" --title "${VERSION_NAME}" --notes-file release-notes.md --target "${TARGET_SHA}"
+          else
+            args=(release create "${TAG_NAME}" --target "${TARGET_SHA}" --title "${VERSION_NAME}" --notes-file release-notes.md)
+            if [[ "${PRERELEASE}" == "true" ]]; then
+              args+=(--prerelease)
+            fi
+            if [[ "${DRAFT}" == "true" ]]; then
+              args+=(--draft)
+            fi
+            gh "${args[@]}"
+          fi
+
+      - name: Dry-run verification
+        if: ${{ steps.release.outputs.dry_run == 'true' }}
+        run: |
+          echo 'Dry run complete. No tag or GitHub release was created.' | tee -a "$GITHUB_STEP_SUMMARY"
