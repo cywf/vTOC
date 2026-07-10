@@ -1,0 +1,80 @@
+# SCRUM-45: Jira -> G8S agents -> Archon -> codex PR delivery loop
+# Sprint-0 workflow contract. This file is intentionally non-deploying.
+workflow:
+  name: scrum-45-jira-archon-loop
+  jira:
+    project: SCRUM
+    issue: SCRUM-45
+    required_labels:
+      - g8s
+      - sprint-0
+    routing_label_prefix: agent-
+  guardrails:
+    production_deploy: false
+    auto_merge_main: false
+    require_isolated_worktree: true
+    require_ci_before_merge: true
+    merge_authority: G1-Maria
+  branch_policy:
+    worktree_pattern: archon/{jira_key}-{slug}
+    implementation_pattern: codex/{jira_key}-{slug}
+    protected_bases:
+      - main
+      - prod
+      - live
+  task_type_map:
+    feature:
+      labels: [feature, vtoc]
+      workflow: .archon/workflows/vtoc_mvp_build.yaml
+      expected_output: codex PR with tests and Jira link
+    bugfix:
+      labels: [bug, vtoc]
+      workflow: .archon/workflows/vtoc_mvp_build.yaml
+      expected_output: codex PR with regression evidence
+    docs:
+      labels: [docs]
+      workflow: .archon/workflows/scrum_45_jira_archon_loop.yaml
+      expected_output: docs-only codex PR
+    research:
+      labels: [research]
+      workflow: .archon/workflows/scrum_45_jira_archon_loop.yaml
+      expected_output: report artifact; PR only when repo files change
+    orchestration:
+      labels: [infra, sprint-0]
+      workflow: .archon/workflows/scrum_45_jira_archon_loop.yaml
+      expected_output: mapping/config PR; no production side effects
+  stages:
+    - id: intake
+      owner: Hermes/G8S
+      checks:
+        - Fetch Jira issue and labels.
+        - Resolve owning agent from agent-* label.
+        - Select workflow from task_type_map.
+    - id: prepare_worktree
+      owner: Pi-agent Archon runner
+      checks:
+        - Create isolated worktree using branch_policy.worktree_pattern.
+        - Keep generated code on codex/* when implementation is required.
+    - id: execute
+      owner: Archon
+      checks:
+        - Run selected workflow only inside the isolated worktree.
+        - Do not publish containers or deploy services in Sprint-0.
+    - id: pull_request
+      owner: Codex/Archon
+      checks:
+        - Open or update codex/* PR.
+        - Include Jira link and artifact checklist.
+    - id: review_gate
+      owner: G1-Maria
+      checks:
+        - Verify CI/branch gates.
+        - Confirm KP/Maria approval path when required.
+        - Merge only after gates are trustworthy.
+artifacts:
+  required:
+    - jira_issue_url
+    - archon_workflow_path
+    - worktree_branch
+    - codex_pr_url
+    - ci_or_check_status

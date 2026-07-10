@@ -47,6 +47,11 @@ This document provides an overview of the GitHub Actions workflows in the vTOC r
 
 These workflows integrate with GitHub Projects V2 to automate project management tasks.
 
+#### Jira ↔ G8S agents ↔ Archon delivery loop
+- **Purpose**: Maps Jira task types to Archon workflows and defines the Sprint-0 route from Jira issue → isolated Archon worktree → `codex/*` PR → Maria merge gate.
+- **Guardrails**: No production deploys and no automatic `main` merges until CI/branch gates are trustworthy.
+- **See**: [jira-archon-agent-loop.md](./jira-archon-agent-loop.md)
+
 #### project-backlog-plan.yml
 - **Purpose**: Generates Codex plans for new backlog items
 - **Triggers**: `projects_v2_item` created or edited

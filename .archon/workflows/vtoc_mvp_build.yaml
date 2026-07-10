@@ -1,0 +1,54 @@
+# Archon workflow for vTOC MVP build work.
+# Sprint-0 guardrail: this workflow prepares and verifies build changes only;
+# it does not deploy to production or push release images.
+workflow:
+  name: vtoc-mvp-build
+  jira:
+    project: SCRUM
+    accepted_labels:
+      - vtoc
+      - feature
+      - bug
+      - sprint-0
+  guardrails:
+    production_deploy: false
+    publish_release_image: false
+    auto_merge_main: false
+    require_isolated_worktree: true
+    require_pull_request: true
+    merge_authority: G1-Maria
+  branches:
+    worktree_pattern: archon/{jira_key}-{slug}
+    implementation_pattern: codex/{jira_key}-{slug}
+    base: main
+  stages:
+    - id: checkout
+      owner: Pi-agent Archon runner
+      steps:
+        - Create an isolated worktree for the Jira issue.
+        - Check out the requested base branch without modifying protected branches.
+    - id: build_verify
+      owner: Archon/Codex
+      steps:
+        - Install project dependencies using repository lockfiles.
+        - Run the relevant frontend/backend tests for the touched area.
+        - Run Docker build verification locally when the task changes container files.
+    - id: pull_request
+      owner: Archon/Codex
+      steps:
+        - Commit changes on codex/*.
+        - Open or update a pull request with the Jira issue URL.
+        - Attach test/build evidence in the PR body.
+    - id: maria_gate
+      owner: G1-Maria
+      steps:
+        - Confirm CI and branch protection gates are trustworthy.
+        - Confirm no production deploy or release image push occurred.
+        - Merge only after approval gates pass.
+artifacts:
+  required:
+    - jira_issue_url
+    - worktree_branch
+    - codex_pr_url
+    - test_or_build_log
+    - ci_status
