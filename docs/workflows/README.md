@@ -60,7 +60,7 @@ These workflows integrate with GitHub Projects V2 to automate project management
   - `PROJECTS_WORKFLOW_TOKEN` (optional) - Enhanced token for project access
 - **Required Variables**:
   - `CODEX_BASE_URL` - Base URL for Codex API
-  - `CODEX_CLI_VERSION` (optional) - Specific version
+  - `CODEX_CLI_VERSION` (optional) - Specific CLI version
 - **Safeguards**: Skips gracefully if secrets are missing (with warning)
 - **See**: [project-backlog-plan.md](./project-backlog-plan.md)
 
@@ -105,7 +105,7 @@ These workflows integrate with GitHub Projects V2 to automate project management
   - `DOCS_DISCUSSION_CATEGORY_ID`
   - `DOCS_DISCUSSION_LABELS` (optional)
   - `DOCS_DISCUSSION_TITLE_PREFIX` (optional)
-- **Safeguards**: Skips gracefully if configuration is missing
+- **Safeguards**: Skips gracefully if configuration is missing (with warning)
 - **See**: [main-discussion-summary.md](./main-discussion-summary.md)
 
 ### 4. Release & Deployment Workflows
@@ -118,7 +118,7 @@ These workflows integrate with GitHub Projects V2 to automate project management
 - **Purpose**: Promotes changes from `prod` to `live`
 - **See**: [prod-to-live.md](./prod-to-live.md)
 
-#### build-image-live.md  
+#### build-image-live.yml  
 - **Purpose**: Builds live environment images
 - **See**: [build-image-live.md](./build-image-live.md)
 
