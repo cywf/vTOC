@@ -47,6 +47,11 @@ This document provides an overview of the GitHub Actions workflows in the vTOC r
 
 These workflows integrate with GitHub Projects V2 to automate project management tasks.
 
+#### Jira ↔ G8S agents ↔ Archon delivery loop
+- **Purpose**: Maps Jira task types to Archon workflows and defines the Sprint-0 route from Jira issue → isolated Archon worktree → `codex/*` PR → Maria merge gate.
+- **Guardrails**: No production deploys and no automatic `main` merges until CI/branch gates are trustworthy.
+- **See**: [jira-archon-agent-loop.md](./jira-archon-agent-loop.md)
+
 #### project-backlog-plan.yml
 - **Purpose**: Generates Codex plans for new backlog items
 - **Triggers**: `projects_v2_item` created or edited
@@ -55,7 +60,7 @@ These workflows integrate with GitHub Projects V2 to automate project management
   - `PROJECTS_WORKFLOW_TOKEN` (optional) - Enhanced token for project access
 - **Required Variables**:
   - `CODEX_BASE_URL` - Base URL for Codex API
-  - `CODEX_CLI_VERSION` (optional) - Specific CLI version
+  - `CODEX_CLI_VERSION` (optional) - Specific version
 - **Safeguards**: Skips gracefully if secrets are missing (with warning)
 - **See**: [project-backlog-plan.md](./project-backlog-plan.md)
 
@@ -100,7 +105,7 @@ These workflows integrate with GitHub Projects V2 to automate project management
   - `DOCS_DISCUSSION_CATEGORY_ID`
   - `DOCS_DISCUSSION_LABELS` (optional)
   - `DOCS_DISCUSSION_TITLE_PREFIX` (optional)
-- **Safeguards**: Skips gracefully if configuration is missing (with warning)
+- **Safeguards**: Skips gracefully if configuration is missing
 - **See**: [main-discussion-summary.md](./main-discussion-summary.md)
 
 ### 4. Release & Deployment Workflows
@@ -113,7 +118,7 @@ These workflows integrate with GitHub Projects V2 to automate project management
 - **Purpose**: Promotes changes from `prod` to `live`
 - **See**: [prod-to-live.md](./prod-to-live.md)
 
-#### build-image-live.yml  
+#### build-image-live.md  
 - **Purpose**: Builds live environment images
 - **See**: [build-image-live.md](./build-image-live.md)
 
