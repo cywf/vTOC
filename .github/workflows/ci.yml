@@ -242,6 +242,7 @@ jobs:
       - name: Python type check
         run: mypy --config-file mypy.ini
       - name: Backend tests
+        working-directory: backend
         run: pytest -q
       - name: Validate Spec Kit tasks
         run: python -m scripts.bootstrap_cli spec check
