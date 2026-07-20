@@ -11,7 +11,7 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'pnpm exec vite --port 4173 --host 127.0.0.1 --strictPort',
+    command: 'pnpm exec vite build && pnpm exec vite preview --port 4173 --host 127.0.0.1 --strictPort',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,
     stdout: 'pipe',
