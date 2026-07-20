@@ -163,7 +163,7 @@ class BaseStation(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     altitude_m = Column(Float, nullable=True)
-    metadata = Column(JSON, nullable=True)
+    metadata_json = Column("metadata", JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -192,7 +192,7 @@ class Device(Base):
     is_active = Column(Boolean, default=True)
     last_seen_at = Column(DateTime, nullable=True)
     configuration = Column(JSON, nullable=True)
-    metadata = Column(JSON, nullable=True)
+    metadata_json = Column("metadata", JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
