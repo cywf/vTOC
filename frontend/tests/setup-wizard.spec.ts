@@ -4,12 +4,12 @@ test.describe('Setup wizard flow', () => {
   test('completes station onboarding with connector tests', async ({ page }) => {
     await page.goto('/setup');
 
-    await page.getByLabelText(/station name/i).fill('Forward Ops Station');
-    await page.getByLabelText(/station slug/i).fill('forward-ops');
+    await page.getByLabel(/station name/i).fill('Forward Ops Station');
+    await page.getByLabel(/station slug/i).fill('forward-ops');
 
     await page.getByRole('button', { name: 'Next' }).click();
 
-    await page.getByLabelText(/ADS-B Receiver/i).check();
+    await page.getByLabel(/ADS-B Receiver/i).check();
 
     await page.getByRole('button', { name: 'Next' }).click();
 
@@ -26,7 +26,7 @@ test.describe('Operational map', () => {
   test('reflects ADS-B overlay toggles', async ({ page }) => {
     await page.goto('/map');
 
-    const overlayToggle = page.getByLabelText(/ADS-B overlay/i);
+    const overlayToggle = page.getByLabel(/ADS-B overlay/i);
     const trackCount = page.getByTestId('adsb-track-count');
 
     await expect(trackCount).toContainText('ADS-B tracks');
