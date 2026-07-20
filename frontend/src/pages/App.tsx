@@ -1,11 +1,9 @@
-import { useState } from 'react';
 import { useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
 import ChatKitWidget from '../components/chatkit/ChatKitWidget';
-import SetupWizard from '../features/setup/SetupWizard';
+import SetupWizardModal from '../components/setup/SetupWizard';
 import AppRouter from '../router';
-import SetupWizard from '../features/setup/SetupWizard';
 import { useSupabaseSession, useTelemetryEvents } from '../services/api';
 
 const StationNav = () => {
@@ -109,7 +107,7 @@ const App = () => {
       <main className="station-content">
         <AppRouter />
       </main>
-      <SetupWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
+      <SetupWizardModal open={wizardOpen} onClose={() => setWizardOpen(false)} />
       {chatkitConfigured ? (
         <aside className="chatkit-console" aria-live="polite">
           {chatConsoleLoading ? (

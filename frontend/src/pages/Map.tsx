@@ -7,6 +7,8 @@ import { useStationDashboard, useTelemetryEvents } from '../services/api';
 
 const DEFAULT_STATION_SLUG = 'toc-s1';
 const BASE_STATION_POSITION: LatLngExpression = [18.4663, -66.1057];
+const DEFAULT_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const DEFAULT_TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors';
 
 const ADSB_EVENT_COLOR = '#1f77b4';
 const GENERIC_EVENT_COLOR = '#ff7f0e';
@@ -127,8 +129,8 @@ const MapPage = () => {
       <div className="map-dashboard__body">
         <MapContainer center={BASE_STATION_POSITION} zoom={8} scrollWheelZoom className="map-dashboard__map">
           <TileLayer
-            url={import.meta.env.VITE_MAP_TILES_URL}
-            attribution={import.meta.env.VITE_MAP_ATTRIBUTION}
+            url={import.meta.env.VITE_MAP_TILES_URL ?? DEFAULT_TILE_URL}
+            attribution={import.meta.env.VITE_MAP_ATTRIBUTION ?? DEFAULT_TILE_ATTRIBUTION}
           />
           <Marker position={BASE_STATION_POSITION} data-testid="base-station-marker">
             <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent>
