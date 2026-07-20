@@ -135,7 +135,6 @@ jobs:
               connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
           PY
       - name: Run Alembic upgrade
-        working-directory: backend
         env:
           POSTGRES_STATION_ROLE: ${{ matrix.station.slug }}
           DATABASE_URL: postgresql+psycopg2://vtoc:vtocpass@localhost:5432/vtoc?options=-csearch_path%3D${{ matrix.station.schema }}
@@ -173,8 +172,6 @@ jobs:
           node-version: 20
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - name: Enable corepack
-        run: corepack enable
       - name: Install frontend dependencies
         working-directory: frontend
         run: pnpm install --frozen-lockfile
