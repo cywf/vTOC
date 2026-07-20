@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { installDiagnostics, waitForLandmark } from './readiness';
+import { installDiagnostics, mockApiResponses, waitForLandmark } from './readiness';
 
 test.describe('Setup wizard flow', () => {
   test('completes station onboarding with connector tests', async ({ page }) => {
     const diagnostics = installDiagnostics(page);
+    await mockApiResponses(page);
     await page.goto('/setup');
 
     await waitForLandmark(page, page.getByRole('heading', { name: /base station setup/i }), diagnostics);
@@ -29,6 +30,7 @@ test.describe('Setup wizard flow', () => {
 test.describe('Operational map', () => {
   test('reflects ADS-B overlay toggles', async ({ page }) => {
     const diagnostics = installDiagnostics(page);
+    await mockApiResponses(page);
     await page.goto('/map');
 
     await waitForLandmark(page, page.getByRole('heading', { name: /operational map/i }), diagnostics);

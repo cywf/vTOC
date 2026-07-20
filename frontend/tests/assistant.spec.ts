@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { installDiagnostics, waitForLandmark } from './readiness';
+import { installDiagnostics, mockApiResponses, waitForLandmark } from './readiness';
 
 test.describe('ChatKit Co-Pilot integration', () => {
   test('mounts the assistant widget and toggles visibility', async ({ page }) => {
     const diagnostics = installDiagnostics(page);
+    await mockApiResponses(page);
     await page.goto('/');
 
     await waitForLandmark(page, page.getByRole('heading', { name: /vtoc station command/i }), diagnostics);
