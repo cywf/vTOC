@@ -1,6 +1,5 @@
 """Tests for POI and IMEI watchlist API endpoints."""
 import pytest
-from fastapi import status
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
