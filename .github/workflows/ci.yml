@@ -191,7 +191,7 @@ jobs:
         run: pnpm exec playwright install --with-deps
       - name: Playwright smoke tests
         working-directory: frontend
-        run: pnpm test:playwright -- --reporter=line
+        run: pnpm exec playwright test --reporter=line
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
