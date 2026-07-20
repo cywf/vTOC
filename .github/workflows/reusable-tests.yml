@@ -27,8 +27,6 @@ jobs:
           node-version: 20
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - name: Enable corepack
-        run: corepack enable
       - name: Install frontend dependencies
         working-directory: frontend
         run: pnpm install --frozen-lockfile
@@ -52,6 +50,8 @@ jobs:
         run: pip install -r requirements.runtime.txt -r requirements.dev.txt
       - name: Backend tests
         working-directory: backend
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
         run: pytest -q
       - name: Record test status
         id: tests_summary

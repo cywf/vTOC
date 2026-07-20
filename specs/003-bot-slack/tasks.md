@@ -1,4 +1,4 @@
-# Task Breakdown
+# Tasks
 
 ## App Setup
 - [ ] Draft Slack app manifest with scopes and event subscriptions.

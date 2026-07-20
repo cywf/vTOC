@@ -1,0 +1,9 @@
+title = "vTOC secret scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Mermaid node identifier misclassified as a Discord client secret"
+paths = ['''^mermaid/flowchart\.mmd$''']
+regexes = ['''^d_specs_004_bot_discord\s+-->\s+[a-z0-9]{32}$''']

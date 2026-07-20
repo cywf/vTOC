@@ -1,4 +1,4 @@
-# Task Breakdown
+# Tasks
 
 ## Command Manifest
 - [ ] Draft slash command definitions and permissions.

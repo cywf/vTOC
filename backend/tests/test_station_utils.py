@@ -11,9 +11,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-import pytest
+import pytest  # noqa: E402
 
-from backend.app.utils import stations
+from backend.app.utils import stations  # noqa: E402
 
 
 class DummyRequest:

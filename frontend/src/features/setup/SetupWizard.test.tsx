@@ -28,11 +28,13 @@ describe('SetupWizard', () => {
 
   it('guides the user through configuration and connector testing', async () => {
     const user = userEvent.setup();
-    const triggerConnectorTest = vi.fn<ChatKitClient['triggerConnectorTest']>().mockResolvedValue({
+    const triggerConnectorTest = vi
+      .fn<Parameters<ChatKitClient['triggerConnectorTest']>, ReturnType<ChatKitClient['triggerConnectorTest']>>()
+      .mockResolvedValue({
       status: 'succeeded',
       message: 'Test complete',
       connector_id: 'adsb-receiver',
-    });
+      });
 
     const factory = vi.fn(() => ({
       triggerConnectorTest,

@@ -1,4 +1,4 @@
-# Task Breakdown
+# Tasks
 
 ## Command Catalog
 - [ ] Document mission status, AgentKit playbook, and MCP diagnostic commands with sample responses.

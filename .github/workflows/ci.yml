@@ -15,9 +15,72 @@ on:
       - main
       - prod
       - stage
+    types: [opened, synchronize, reopened, edited, ready_for_review]
   workflow_dispatch:
 
 jobs:
+  independent-review:
+    name: Independent review evidence
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PR_BODY: ${{ github.event.pull_request.body }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      IS_DRAFT: ${{ github.event.pull_request.draft }}
+    steps:
+      - name: Validate merge path and exact-head review evidence
+        shell: python
+        run: |
+          import os
+          import re
+
+          body = os.environ.get("PR_BODY", "")
+          head_ref = os.environ.get("HEAD_REF", "")
+          head_sha = os.environ.get("HEAD_SHA", "")
+          errors = []
+
+          if os.environ.get("IS_DRAFT", "").lower() == "true":
+              errors.append("pull request must be ready for review")
+          if not head_ref.startswith("codex/"):
+              errors.append("pull requests to main must originate from codex/*")
+          if "## Agent quality evidence" not in body:
+              errors.append("missing Agent quality evidence section")
+
+          reviewer = re.search(
+              r"(?im)^\|\s*Independent reviewer\s*\|\s*([^|]+)\|\s*([^|]+)\|",
+              body,
+          )
+          if reviewer is None:
+              errors.append("missing Independent reviewer evidence row")
+          else:
+              identity, verdict = reviewer.groups()
+              evidence = f"{identity} {verdict}"
+              if re.search(r"\b(pending|tbd|todo|placeholder|awaiting)\b", evidence, re.I):
+                  errors.append("independent reviewer evidence is still pending")
+              if not re.search(r"\b(pass(?:ed)?|approved|no blockers)\b", verdict, re.I):
+                  errors.append("independent reviewer must record a passing verdict")
+              if head_sha not in verdict:
+                  errors.append("review evidence must reference the exact PR head SHA")
+
+          if errors:
+              raise SystemExit("\n".join(f"- {error}" for error in errors))
+          print("PR policy and exact-head independent review evidence passed")
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan committed changes for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   alembic-migrations:
     name: Alembic migrations (${{ matrix.station.slug }})
     runs-on: ubuntu-latest
@@ -72,7 +135,6 @@ jobs:
               connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
           PY
       - name: Run Alembic upgrade
-        working-directory: backend
         env:
           POSTGRES_STATION_ROLE: ${{ matrix.station.slug }}
           DATABASE_URL: postgresql+psycopg2://vtoc:vtocpass@localhost:5432/vtoc?options=-csearch_path%3D${{ matrix.station.schema }}
@@ -80,7 +142,7 @@ jobs:
 
   build-and-test:
     permissions:
-      packages: ${{ github.event_name == 'push' && 'write' || 'read' }}
+      packages: write
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -110,8 +172,6 @@ jobs:
           node-version: 20
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - name: Enable corepack
-        run: corepack enable
       - name: Install frontend dependencies
         working-directory: frontend
         run: pnpm install --frozen-lockfile
@@ -131,7 +191,7 @@ jobs:
         run: pnpm exec playwright install --with-deps
       - name: Playwright smoke tests
         working-directory: frontend
-        run: pnpm test:playwright -- --reporter=line
+        run: pnpm exec playwright test --reporter=line
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -182,6 +242,9 @@ jobs:
       - name: Python type check
         run: mypy --config-file mypy.ini
       - name: Backend tests
+        working-directory: backend
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
         run: pytest -q
       - name: Validate Spec Kit tasks
         run: python -m scripts.bootstrap_cli spec check
@@ -254,8 +317,33 @@ jobs:
             "$BACKEND_IMAGE_TAG"
           sleep 5
           curl -f http://localhost:8080/healthz
-          curl -f http://localhost:8080/api/v1/agent-actions/audits
+          curl -f http://localhost:8080/api/v1/agent-actions/tools
         shell: bash
       - name: Cleanup smoke container
         if: always()
         run: docker rm -f vtoc-backend-test || true
+
+  required-ci:
+    name: Required CI
+    if: always()
+    needs:
+      - independent-review
+      - secret-scan
+      - alembic-migrations
+      - build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every applicable gate
+        env:
+          EVENT: ${{ github.event_name }}
+          REVIEW: ${{ needs.independent-review.result }}
+          SECRETS: ${{ needs.secret-scan.result }}
+          MIGRATIONS: ${{ needs.alembic-migrations.result }}
+          BUILD_TEST: ${{ needs.build-and-test.result }}
+        run: |
+          test "$SECRETS" = success
+          test "$MIGRATIONS" = success
+          test "$BUILD_TEST" = success
+          if [ "$EVENT" = pull_request ]; then
+            test "$REVIEW" = success
+          fi

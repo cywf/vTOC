@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 
 from .schema_mixins import (
     ActivationFields,
@@ -38,7 +38,10 @@ class BaseStationBase(SlugNameMixin, DescriptionMixin):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     altitude_m: Optional[float] = None
-    metadata: Optional[dict[str, Any]] = None
+    metadata: Optional[dict[str, Any]] = Field(
+        default=None,
+        validation_alias=AliasChoices("metadata_json", "metadata"),
+    )
     station_id: Optional[int] = None
 
 
@@ -84,7 +87,10 @@ class DeviceBase(SlugNameMixin, ActivationFields):
     firmware_version: Optional[str] = None
     last_seen_at: Optional[datetime] = None
     configuration: Optional[dict[str, Any]] = None
-    metadata: Optional[dict[str, Any]] = None
+    metadata: Optional[dict[str, Any]] = Field(
+        default=None,
+        validation_alias=AliasChoices("metadata_json", "metadata"),
+    )
 
 
 class DeviceCreate(DeviceBase):
